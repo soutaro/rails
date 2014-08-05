@@ -158,6 +158,8 @@ module ActiveSupport #:nodoc:
 
     # Module includes this module.
     module ModuleConstMissing #:nodoc:
+      @@monitor = Monitor.new
+
       def self.append_features(base)
         base.class_eval do
           # Emulate #exclude via an ivar
@@ -176,8 +178,12 @@ module ActiveSupport #:nodoc:
       end
 
       def const_missing(const_name)
-        from_mod = anonymous? ? guess_for_anonymous(const_name) : self
-        Dependencies.load_missing_constant(from_mod, const_name)
+        @@monitor.synchronize do
+          from_mod = anonymous? ? guess_for_anonymous(const_name) : self
+          unless from_mod.const_defined?(const_name)
+            Dependencies.load_missing_constant(from_mod, const_name)
+          end
+        end
       end
 
       # We assume that the name of the module reflects the nesting
