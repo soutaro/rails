@@ -153,6 +153,18 @@ class DependenciesTest < ActiveSupport::TestCase
     end
   end
 
+  def test_threadsafe
+    assert_nothing_raised do
+      with_autoloading_fixtures do
+        t1 = Thread.start { HeavyClass }
+        t2 = Thread.start { HeavyClass }
+
+        t1.join
+        t2.join
+      end
+    end
+  end
+
   def test_module_loading
     with_autoloading_fixtures do
       assert_kind_of Module, A
