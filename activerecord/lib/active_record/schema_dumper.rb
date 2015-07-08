@@ -44,11 +44,14 @@ module ActiveRecord
       def initialize(connection, options = {})
         @connection = connection
         @version = Migrator::current_version rescue nil
+        @digest = Digest::SHA1.hexdigest(Migrator::migrated.map {|x| x.version.to_i }.sort.join) rescue nil
         @options = options
       end
 
       def header(stream)
-        define_params = @version ? "version: #{@version}" : ""
+        define_params = []
+        define_params << "version: #{@version}" if @version
+        define_params << "digest: '#{@digest}'" if @digest
 
         if stream.respond_to?(:external_encoding) && stream.external_encoding
           stream.puts "# encoding: #{stream.external_encoding.name}"
@@ -67,7 +70,7 @@ module ActiveRecord
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(#{define_params}) do
+ActiveRecord::Schema.define(#{define_params.join(",")}) do
 
 HEADER
       end
